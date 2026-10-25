@@ -1,0 +1,26 @@
+{
+  "name": "claude-relay",
+  "version": "0.1.0",
+  "description": "Let teammates' Claude Code sessions message each other through a tiny shared relay",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "claude-relay-server": "dist/relay.js",
+    "claude-relay-mcp": "dist/mcp.js",
+    "claude-relay-hook": "dist/hook.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "relay": "node dist/relay.js",
+    "test": "npm run build && node --test dist/*.test.js"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "typescript": "^7.0.2"
+  }
+}
