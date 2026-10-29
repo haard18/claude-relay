@@ -1,6 +1,6 @@
 {
   "name": "claude-relay",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Let teammates' Claude Code sessions message each other through a tiny shared relay",
   "type": "module",
   "license": "MIT",

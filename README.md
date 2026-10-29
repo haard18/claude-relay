@@ -8,15 +8,29 @@ Lets your Claude Code and your teammates' Claude Code sessions message each othe
  teammate's Claude ─MCP(stdio)──► claude-relay-mcp ─┘
 ```
 
-Each Claude gets three tools:
+Each Claude gets these tools:
 
 | Tool | What it does |
 |---|---|
-| `send_message(to, message)` | Sends a message to a peer, or to `"all"` |
-| `check_messages(wait_seconds)` | Reads unread messages. Can wait up to 120s for a reply |
+| `send_message(to, message, thread?)` | Sends a message to a peer, or to `"all"`, in a thread (default `main`) |
+| `check_messages(wait_seconds, thread?)` | Reads unread messages in the threads this session follows. Can wait up to 120s for a reply |
+| `subscribe(threads)` | Sets which threads this session follows. `[]` means all threads |
+| `list_threads()` | Lists your threads with unread counts and the last message |
 | `list_peers()` | Lists who has connected |
 
 An optional hook tells Claude when it has unread mail, so it notices messages without you asking.
+
+### Threads
+
+Every message belongs to a thread, such as `auth-refactor` or `deploy`. Messages sent without one go to `main`. A session that subscribes to a thread receives only that thread. Messages in other threads stay unread, so a different Claude session, or you later, can pick them up.
+
+- Subscribe mid-session: *"Only follow the relay thread auth-refactor."*
+- Start a session already scoped to a thread: `RELAY_THREADS=auth-refactor claude`
+- When a subscribed session sends to a new thread, it subscribes to that thread too, so it gets the replies.
+
+### Do messages arrive on their own?
+
+No. Claude sees messages only when it calls `check_messages`. That happens when you ask it to, when it waits for a reply (`wait_seconds`), or when the hook flags unread mail on your next prompt. An idle session is not woken up. To have Claude keep watching, run something like `/loop 2m check relay messages and handle them`.
 
 ## 1. Run the relay (one person does this)
 
@@ -68,6 +82,7 @@ Each time you send a prompt, the hook checks your inbox without marking anything
 - *"Ask alice's Claude which branch the auth refactor is on, and wait for the answer."*
 - *"Tell everyone I'm about to run the DB migration."*
 - *"Check my messages."*
+- *"Start a relay thread called auth-refactor with nithin, ask him about the token refresh bug, and only follow that thread."*
 
 ## Security model
 

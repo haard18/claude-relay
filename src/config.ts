@@ -9,6 +9,8 @@ export interface ClientConfig {
 }
 
 export const NAME_PATTERN = /^[a-z0-9][a-z0-9_-]{0,31}$/;
+export const THREAD_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/;
+export const DEFAULT_THREAD = "main";
 
 // Env vars win; ~/.claude-relay.json is the fallback so the MCP server and
 // the hook (which runs without the MCP env) share one source of truth.

@@ -1,9 +1,15 @@
 import type { ClientConfig } from "./config.js";
-import type { Message } from "./relay.js";
+import type { Message, ThreadSummary } from "./relay.js";
 
 export interface Peer {
   name: string;
   lastSeen: string;
+}
+
+export interface InboxOptions {
+  waitSeconds?: number;
+  peek?: boolean;
+  threads?: string[]; // only these threads; omit or empty for all
 }
 
 export class RelayClient {
@@ -13,21 +19,29 @@ export class RelayClient {
     return this.config.name;
   }
 
-  async send(to: string, body: string): Promise<{ message: Message; recipientKnown: boolean }> {
-    const res = await this.request("/messages", { method: "POST", body: JSON.stringify({ to, body }) });
+  async send(to: string, body: string, thread?: string): Promise<{ message: Message; recipientKnown: boolean }> {
+    const res = await this.request("/messages", { method: "POST", body: JSON.stringify({ to, body, thread }) });
     const data = (await res.json()) as { message?: Message; recipientKnown?: boolean };
     if (!data.message || typeof data.message.id !== "number") throw new Error("relay returned a malformed send response");
     return { message: data.message, recipientKnown: data.recipientKnown === true };
   }
 
-  async inbox(opts: { waitSeconds?: number; peek?: boolean } = {}): Promise<Message[]> {
+  async inbox(opts: InboxOptions = {}): Promise<Message[]> {
     const params = new URLSearchParams();
     if (opts.waitSeconds) params.set("wait", String(opts.waitSeconds));
     if (opts.peek) params.set("peek", "1");
+    for (const thread of opts.threads ?? []) params.append("thread", thread);
     const res = await this.request(`/inbox?${params}`, {}, ((opts.waitSeconds ?? 0) + 15) * 1000);
     const data = (await res.json()) as { messages?: unknown };
     if (!Array.isArray(data.messages)) throw new Error("relay returned a malformed inbox response");
     return data.messages.filter(isMessage);
+  }
+
+  async threads(): Promise<ThreadSummary[]> {
+    const res = await this.request("/threads");
+    const data = (await res.json()) as { threads?: unknown };
+    if (!Array.isArray(data.threads)) throw new Error("relay returned a malformed threads response");
+    return data.threads as ThreadSummary[];
   }
 
   async peers(): Promise<Peer[]> {
@@ -59,13 +73,13 @@ function isMessage(value: unknown): value is Message {
   const m = value as Message;
   return (
     typeof m === "object" && m !== null &&
-    typeof m.id === "number" && typeof m.from === "string" &&
-    typeof m.to === "string" && typeof m.body === "string" && typeof m.ts === "string"
+    typeof m.id === "number" && typeof m.from === "string" && typeof m.to === "string" &&
+    typeof m.thread === "string" && typeof m.body === "string" && typeof m.ts === "string"
   );
 }
 
 export function formatMessages(messages: Message[]): string {
   return messages
-    .map((m) => `[#${m.id} ${m.ts}] from ${m.from}${m.to === "all" ? " (to all)" : ""}:\n${m.body}`)
+    .map((m) => `[#${m.id} ${m.ts}] thread "${m.thread}", from ${m.from}${m.to === "all" ? " (to all)" : ""}:\n${m.body}`)
     .join("\n\n---\n\n");
 }
